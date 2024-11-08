@@ -249,32 +249,63 @@ if(isset($_POST['submit'])) {
             }
     }
 
+    function curlGetFullUrl(string $url)
+    {
+        $c = curl_init();
+        curl_setopt($c, CURLOPT_URL, $url);
+        curl_setopt($c, CURLOPT_HTTPGET, 1);
+        curl_setopt($c, CURLOPT_HEADER, 0);
+        curl_setopt($c, CURLOPT_VERBOSE, 0);
+        curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($c, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($c, CURLOPT_FOLLOWLOCATION, true);
+
+        $data = curl_exec($c);
+        curl_close($c);
+
+        if(strpos($data,"og:url")){
+            $data = substr($data,strpos($data,"og:url")+17);
+            $data = substr($data,0,strpos($data,'"'));
+            return $data;
+        }
+        else
+        { return '';}
+    }
+
 //Run this crap
     $bluesky = new BlueskyApi($BSKY_HANDLETEST, $BSKY_PWTEST);
 
     if($bluesky){
-    $arrPack=explode('/',$packURL);
-    $userHandle=$arrPack[count($arrPack)-2];
-    $packID=$arrPack[count($arrPack)-1];
 
-    $arrList=explode('/',$listURL);
-    $listUserHandle=$arrList[count($arrList)-3];
-    $listID=$arrList[count($arrList)-1];
-
+        //handle short URLs for the pack
+        $packURL = str_replace('bsky.app/starter-pack-short','go.bsky.app',$packURL);
+        if (strpos($packURL,"go.bsky.app")>0  ){
+            $packURL=curlGetFullUrl($packURL);
+        }
 
 
-    $packAT=bskySPs($bluesky,$userHandle,$packID);
-    $listAT=bskyListATs($bluesky,$listUserHandle,$listID);
-    if ($packAT!='' && $listAT!=''){
-        //Came back with an at: URI, so I can now fetch the Starter Pack and parse for the list details inside
-        bsky_List2StarterPack($bluesky,$packAT,$listAT);
-    }
-    else{
-        echo "Could not find that Starter Pack. Please check the URL and try again.";
-    }
+        $arrPack=explode('/',$packURL);
+        $userHandle=$arrPack[count($arrPack)-2];
+        $packID=$arrPack[count($arrPack)-1];
 
-    $bluesky=null;
-    echo "Import Complete";
+        $arrList=explode('/',$listURL);
+        $listUserHandle=$arrList[count($arrList)-3];
+        $listID=$arrList[count($arrList)-1];
+
+
+
+        $packAT=bskySPs($bluesky,$userHandle,$packID);
+        $listAT=bskyListATs($bluesky,$listUserHandle,$listID);
+        if ($packAT!='' && $listAT!=''){
+            //Came back with an at: URI, so I can now fetch the Starter Pack and parse for the list details inside
+            bsky_List2StarterPack($bluesky,$packAT,$listAT);
+        }
+        else{
+            echo "Could not find that Starter Pack. Please check the URL and try again.";
+        }
+
+        $bluesky=null;
+        echo "Import Complete";
     }
     else{
         echo "Error connecting to your account. Please check the username and app password and try again.";
