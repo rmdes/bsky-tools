@@ -6,8 +6,9 @@ if(isset($_POST['submit'])) {
 
     $BSKY_HANDLETEST=$_POST['handle'];
     $BSKY_PWTEST=$_POST['apppassword'];
-    $packURL=$_POST['packurl'];
-
+    $targetUser=$_POST['targetUser'];
+    $numAccts=$_POST['numAccts'];
+    $copyCap=.1; //Limit to only copying 10% of the follows from the account; adjust as desired 
 
 
     class BlueskyApi
@@ -148,131 +149,63 @@ if(isset($_POST['submit'])) {
     }
 
 
-    function curlGetFullUrl(string $url)
-    {
-        $c = curl_init();
-        curl_setopt($c, CURLOPT_URL, $url);
-        curl_setopt($c, CURLOPT_HTTPGET, 1);
-        curl_setopt($c, CURLOPT_HEADER, 0);
-        curl_setopt($c, CURLOPT_VERBOSE, 0);
-        curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($c, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($c, CURLOPT_FOLLOWLOCATION, true);
-
-        $data = curl_exec($c);
-        curl_close($c);
-
-        if(strpos($data,"og:url")){
-            $data = substr($data,strpos($data,"og:url")+17);
-            $data = substr($data,0,strpos($data,'"'));
-            return $data;
-        }
-        else
-        { return '';}
-
-        
-    }
 
 
-    function bsky_StarterPack($bsky, $spDID) {
-        //build the post
-    
-        $args = [
-            'starterPack' => $spDID
-        ];
-
-
-        // SEND A MESSAGE
-            if($data = $bsky->request('GET', 'app.bsky.graph.getStarterPack', $args)){
-                //get the parameters from the pack
-                $packListUri=$data->starterPack->list->uri;
-                $packListName=$data->starterPack->list->name;
-
-                //create a new list for the user with the pack details
-                $args=[  'collection' => 'app.bsky.graph.list',
-                        'repo' => $bsky->getAccountDid(),
-                        'record' => [
-                            'createdAt' => date('c'),
-                            '$type' => 'app.bsky.graph.list',
-                            'purpose' => 'app.bsky.graph.defs#curatelist',
-                            'name'=>$packListName .'-Pack' ,
-                            'description'=> "Imported from the Starter Pack at ". $_POST['packurl'] . ", powered by https://nws-bot.us/bskyStarterPack.php and @wandrme.paxex.aero.",
-                        ],
-            ];
-                if($data2 = $bsky->request('POST', 'com.atproto.repo.createRecord', $args)){
-                    $newListURI=$data2->uri;
-                    //read the old list for accounts to add to the list
-                    $args=['list'=>$packListUri,'limit'=>100];
-                    if($spList=$bsky->request('GET','app.bsky.graph.getList',$args)){
-                        foreach($spList->items as $listItem){
-                            //Add the user to the list
-                            $args=[  'collection' => 'app.bsky.graph.listitem',
-                            'repo' => $bsky->getAccountDid(),
-                            'record' => [
-                                'createdAt' => date('c'),
-                                '$type' => 'app.bsky.graph.listitem',
-                                'subject'=> $listItem->subject->did,
-                                'list'=> $newListURI,
-                                ],
-                            ];
-                            $bsky->request('POST', 'com.atproto.repo.createRecord', $args);
-                        }
-                    }
-
-                    
-                }
-            } else {
-                echo "Couldn't find that starter pack. Please check the URL and try again.";
-            }
-    }
-
-
-    function bskySPs($bsky, $userHandle,$packID) {
-        //build the post
-    
-        $args = [
-            'actor' => $userHandle
-        ];
-
-            if($data = $bsky->request('GET', 'app.bsky.graph.getActorStarterPacks', $args)){
-                #iterate the JSON, looking for the pack with the ID that was passed in
-                
-                foreach ($data->starterPacks as $item){
-                    $packURI=$item->uri;
-                    $arrPackCheck=explode('/',$packURI);
-                    $packCode=$arrPackCheck[count($arrPackCheck)-1];
-                    if ($packCode==$packID){
-                        return  $packURI;
-                    }
-                }
-            } else {
-                return '';
-            }
-    }
 
 //Run this crap
+
     $bluesky = new BlueskyApi($BSKY_HANDLETEST, $BSKY_PWTEST);
 
+
     if($bluesky){
-        //handle short URLs for the pack
-        $packURL = str_replace('bsky.app/starter-pack-short','go.bsky.app',$packURL);
-        if (strpos($packURL,"go.bsky.app")>0  ){
-            $packURL=curlGetFullUrl($packURL);
-        }
 
-        $arrPack=explode('/',$packURL);
-        $userHandle=$arrPack[count($arrPack)-2];
-        $packID=$arrPack[count($arrPack)-1];
+        //get did for the  user from which to copy
+       
+        $args = [
+            'actor' => $targetUser
+        ];
 
+        if ($tUsr=$bluesky->request('GET','app.bsky.actor.getProfile',$args)){
 
-
-        $packAT=bskySPs($bluesky,$userHandle,$packID);
-        if ($packAT!=''){
-            //Came back with an at: URI, so I can now fetch the Starter Pack and parse for the list details inside
-            $results=bsky_StarterPack($bluesky,$packAT);
-        }
-        else{
-            echo "Could not find that Starter Pack. Please check the URL and try again.";
+            
+            //get all the follows for that user
+            $tDID=$tUsr->did;
+            $tFCount=$tUsr->followsCount;
+            //get follows of that user
+            $arrFoll=[];
+            $args = [
+                'actor' => $tDID,
+                'limit'=>100
+            ];
+            $follows=json_decode(json_encode($bluesky->request('GET','app.bsky.graph.getFollows',$args)),true);
+            $arrFoll=array_merge($follows['follows'],$arrFoll);
+            if($follows['cursor']){
+                $args = [
+                    'actor' => $tDID,
+                    'limit'=>100,
+                    'cursor'=>$follows['cursor']
+                ];
+                $follows=json_decode(json_encode($bluesky->request('GET','app.bsky.graph.getFollows',$args)),true);
+                $arrFoll=array_merge($follows['follows'],$arrFoll);    
+            }
+        
+            //Now Loop to NN accounts (or % cap) and add those as follows 
+            $numTries=min(round(count($arrFoll)/$copyCap),$numAccts);
+            $randAccts=array_rand($arrFoll,$numTries);
+            foreach($randAccts as $acct){
+                //add as a follow
+                $args=[
+                    'collection' => 'app.bsky.graph.follow',
+                    'repo' => $bluesky->getAccountDid(),
+                    'record' => [
+                        'subject'=>$arrFoll[$acct]['did'],
+                        'createdAt' => date('c'),
+                        '$type' => 'app.bsky.graph.follow',
+                    ],
+                ];
+                $res=$bluesky->request('POST', 'com.atproto.repo.createRecord', $args);
+            }
+        
         }
 
         $bluesky=null;
@@ -286,17 +219,17 @@ if(isset($_POST['submit'])) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Convert BSky Starter Pack to List</title>
+    <title>Follow a random chunk of users from someone else's list</title>
 </head>
 <body>
-    <h1>Convert a BSky Starter Pack to a List</h1>
+    <h1>Follow a random chunk of users from someone else's list</h1>
     <form action="" method="POST">
         <p>Your BSky Handle: <input type="text" name="handle" placeholder="user.bsky.social" required></p>
         <p>Your BSky <a href="https://bsky.app/settings/app-passwords" target="_blank">App Password</a>: <input type="password" name="apppassword" placeholder="abcd-1234-fghi-5678" required></p>
-        <p>Starter Pack URL to convert: <input type="text" name="packurl" placeholder="https://bsky.app/starter-pack/wandrme.paxex.aero/3l6stg6xfrc23" required></p>
+        <p>User from whom to poach follows: <input type="text" name="targetUser" placeholder="username.doman.name" required></p>
+        <p>How many random users to follow?: <input type="text" name="numAccts" placeholder="25" required> *Up to 10% of their total follows or this number, whichever is larger, will be followed.</p> 
         <input type="submit" name="submit" value="Submit">
     </form>
-    <p>*Note: Only the first 100 entries in the list will be included in the conversion!</p>
     <hr />
     <ul>
     <li><a href="./bskyListCombiner.php">Import members from one list into another, existing list.</a></li>
