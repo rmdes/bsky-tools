@@ -6,13 +6,10 @@ if(isset($_POST['submit'])) {
 
     $BSKY_HANDLETEST=$_POST['handle'];
     $BSKY_PWTEST=$_POST['apppassword'];
-    $packURL=$_POST['packurl'];
-    $listURL=$_POST['listurl'];
+    $packURL=$_POST['targeturl'];
+    $listURL=$_POST['sourceurl'];
     
   
-
-
-
     class BlueskyApi
     {
         private ?string $accountDid = null;
@@ -149,10 +146,6 @@ if(isset($_POST['submit'])) {
         }
     }
 
-
-
-
-
     function bsky_List2StarterPack($bsky, $spAT,$listAT) {
 
     
@@ -189,7 +182,7 @@ if(isset($_POST['submit'])) {
             }
         }
         else {
-        echo "Couldn't find that starter pack. Please check the URL and try again.";
+        echo "Couldn't find that source list. Please check the URL and try again.";
         }
     }
 
@@ -285,7 +278,7 @@ if(isset($_POST['submit'])) {
 
 
         $arrPack=explode('/',$packURL);
-        $userHandle=$arrPack[count($arrPack)-2];
+        $userHandle=$arrPack[count($arrPack)-3];
         $packID=$arrPack[count($arrPack)-1];
 
         $arrList=explode('/',$listURL);
@@ -294,7 +287,7 @@ if(isset($_POST['submit'])) {
 
 
 
-        $packAT=bskySPs($bluesky,$userHandle,$packID);
+        $packAT=bskyListATs($bluesky,$userHandle,$packID);
         $listAT=bskyListATs($bluesky,$listUserHandle,$listID);
         if ($packAT!='' && $listAT!=''){
             //Came back with an at: URI, so I can now fetch the Starter Pack and parse for the list details inside
@@ -315,19 +308,18 @@ if(isset($_POST['submit'])) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Convert a BSky List to a Starter Pack</title>
+    <title>Import members from one list into another, existing list</title>
 </head>
 <body>
-    <h1>Convert a BSky List to a Starter Pack</h1>
+    <h1>Import members from one list into another, existing list</h1>
     <form action="" method="POST">
         <p>Your BSky Handle: <input type="text" name="handle" placeholder="user.bsky.social" required></p>
         <p>Your BSky <a href="https://bsky.app/settings/app-passwords" target="_blank">App Password</a>: <input type="password" name="apppassword" placeholder="abcd-1234-fghi-5678" required></p>
-        <p>Starter Pack URL: <input type="text" name="packurl" placeholder="https://bsky.app/starter-pack/wandrme.paxex.aero/3l6stg6xfrc23" required></p>
-        <p>Source List URL: <input type="text" name="listurl" placeholder="https://bsky.app/profile/wandrme.paxex.aero/lists/3jzxvt5ms372z" required></p>
+        <p>Source List URL: <input type="text" name="sourceurl" placeholder="https://bsky.app/profile/wandrme.paxex.aero/lists/3jzxvt5ms372z" required></p>
+        <p>Target List URL: <input type="text" name="targeturl" placeholder="https://bsky.app/profile/wandrme.paxex.aero/lists/3l6stg6xfrc23" required></p>
         <input type="submit" name="submit" value="Submit">
     </form>
-    <p>Create a new starter pack from the Profile tab of your account. Add seven random accounts so it can save. Perform the import. Remove the original seven random accounts.</p>
-    <p>*Note: Only the first 100 entries in the list will be included in the conversion!</p>
+<p>*Note: Only the first 100 entries in the list will be included in the conversion!</p>
 <hr />
 <ul>
 <li><a href="./bskyListCombiner.php">Import members from one list into another, existing list.</a></li>

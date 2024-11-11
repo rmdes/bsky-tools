@@ -292,9 +292,17 @@ if(isset($_POST['submit'])) {
     <h1>Convert a BSky Starter Pack to a List</h1>
     <form action="" method="POST">
         <p>Your BSky Handle: <input type="text" name="handle" placeholder="user.bsky.social" required></p>
-        <p>Your BSky App Password: <input type="password" name="apppassword" placeholder="Password..." required></p>
+        <p>Your BSky <a href="https://bsky.app/settings/app-passwords" target="_blank">App Password</a>: <input type="password" name="apppassword" placeholder="abcd-1234-fghi-5678" required></p>
         <p>Starter Pack URL to convert: <input type="text" name="packurl" placeholder="https://bsky.app/starter-pack/wandrme.paxex.aero/3l6stg6xfrc23" required></p>
         <input type="submit" name="submit" value="Submit">
     </form>
+    <p>*Note: Only the first 100 entries in the list will be included in the conversion!</p>
+    <hr />
+    <ul>
+    <li><a href="./bskyListCombiner.php">Import members from one list into another, existing list.</a></li>
+    <li><a href="./bskyList2StarterPack.php">Convert a BSky List to a Starter Pack.</a></li>
+    <li><a href="./bskyStarterPack.php">Convert a BSky Starter Pack to a List.</a></li>
+    </ul>
+<hr />
 </body>
 </html>
