@@ -334,6 +334,8 @@ if(isset($_POST['submit'])) {
 <li><a href="./bskyList2StarterPack.php">Convert a BSky List to a Starter Pack.</a></li>
 <li><a href="./bskyStarterPack.php">Convert a BSky Starter Pack to a List.</a></li>
     <li><a href="./bskyFollowBoost.php">Follow a random chunk of users from someone else's list.</a></li>
+    <li><a href="./bskySPMerge.php">Merge Starter Packs</a></li>
+
 </ul>
 <hr />
 <p><a href="https://github.com/sbm12/bsky-Pack2List" target="_blank">Link to source code</a>. I'm not logging anything on this server, at least not on purpose, but you should still probably use an App Password then delete it when you're done.</p></body>
