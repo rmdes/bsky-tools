@@ -156,10 +156,20 @@ if(isset($_POST['submit'])) {
     function bsky_SP2StarterPack($bsky, $spAT,$listAT) {
 
         //read the source list for accounts to add to the pack list     
-        $largs=['list'=>$listAT,'limit'=>100];
 
-        if($sourceList=$bsky->request('GET','app.bsky.graph.getList',$largs)){
-            foreach($sourceList->items as $listItem){
+        $cursor='';
+        $sourceList=[];
+        do {
+            $args=['list'=>$listAT,'limit'=>100,'cursor'=>$cursor];
+            $res=$bsky->request('GET','app.bsky.graph.getList',$args);
+            $sourceList=array_merge($sourceList,(array)$res->items);
+            $cursor=$res->cursor;
+
+        }
+        while ($cursor);
+
+        if($sourceList){
+            foreach($sourceList as $listItem){
                 //Add the user to the pack list
                 $args=[  'collection' => 'app.bsky.graph.listitem',
                 'repo' => $bsky->getAccountDid(),
@@ -316,7 +326,7 @@ if(isset($_POST['submit'])) {
         <p>Starter pack that is to be included URL (i.e. source): <input type="text" name="packsrcurl" placeholder="https://bsky.app/starter-pack/wandrme.paxex.aero/3l6stg6xfrc23" required></p>
         <input type="submit" name="submit" value="Submit">
     </form>
-    <p>*Note: Only the first 100 entries in the source SP will be included in the conversion! Also, you can only have 150 accounts in a SP.</p>
+    <p>*Note: You can only have 150 accounts in a SP.</p>
 <hr />
 <ul>
 <li><a href="./bskyListCombiner.php">Import members from one list into another, existing list.</a></li>

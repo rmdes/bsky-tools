@@ -149,25 +149,20 @@ if(isset($_POST['submit'])) {
     function bsky_List2StarterPack($bsky, $spAT,$listAT) {
 
     
-        // delete the seven temp accounts from the pack list before I start?
-        
-        $args=['list'=>$spAT,'limit'=>100];
-        if($sourceList=$bsky->request('GET','app.bsky.graph.getList',$args)){
-            foreach($sourceList->items as $listItem){
-
-
-                $args=[  'collection' => 'app.bsky.graph.listitem',
-                'repo' => $bsky->getAccountDid(),
-                'rkey' => $listItem->uri
-                ];
-                $bsky->request('POST', 'com.atproto.repo.deleteRecord', $args);
-            }
-        }
         //read the source list for accounts to add to the pack list     
-        $largs=['list'=>$listAT,'limit'=>100];
+        $cursor='';
+        $sourceList=[];
+        do {
+            $args=['list'=>$listAT,'limit'=>100,'cursor'=>$cursor];
+            $res=$bsky->request('GET','app.bsky.graph.getList',$args);
+            $sourceList=array_merge($sourceList,(array)$res->items);
+            $cursor=$res->cursor;
 
-        if($sourceList=$bsky->request('GET','app.bsky.graph.getList',$largs)){
-            foreach($sourceList->items as $listItem){
+        }
+        while ($cursor);
+
+        if($sourceList){
+            foreach($sourceList as $listItem){
                 //Add the user to the pack list
                 $args=[  'collection' => 'app.bsky.graph.listitem',
                 'repo' => $bsky->getAccountDid(),
@@ -319,7 +314,6 @@ if(isset($_POST['submit'])) {
         <p>Target List URL: <input type="text" name="targeturl" placeholder="https://bsky.app/profile/wandrme.paxex.aero/lists/3l6stg6xfrc23" required></p>
         <input type="submit" name="submit" value="Submit">
     </form>
-<p>*Note: Only the first 100 entries in the list will be included in the conversion!</p>
 <hr />
 <ul>
 <li><a href="./bskyListCombiner.php">Import members from one list into another, existing list.</a></li>

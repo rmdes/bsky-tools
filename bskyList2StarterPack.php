@@ -1,5 +1,5 @@
 <?php
-error_reporting(E_ALL);
+error_reporting(E_ERROR);
 ini_set('display_errors', '1');
 if(isset($_POST['submit'])) {
 
@@ -156,25 +156,21 @@ if(isset($_POST['submit'])) {
     function bsky_List2StarterPack($bsky, $spAT,$listAT) {
 
     
-        // delete the seven temp accounts from the pack list before I start?
-        
-        $args=['list'=>$spAT,'limit'=>100];
-        if($sourceList=$bsky->request('GET','app.bsky.graph.getList',$args)){
-            foreach($sourceList->items as $listItem){
 
-
-                $args=[  'collection' => 'app.bsky.graph.listitem',
-                'repo' => $bsky->getAccountDid(),
-                'rkey' => $listItem->uri
-                ];
-                $bsky->request('POST', 'com.atproto.repo.deleteRecord', $args);
-            }
-        }
         //read the source list for accounts to add to the pack list     
-        $largs=['list'=>$listAT,'limit'=>100];
+        $cursor='';
+        $sourceList=[];
+        do {
+            $args=['list'=>$listAT,'limit'=>100,'cursor'=>$cursor];
+            $res=$bsky->request('GET','app.bsky.graph.getList',$args);
+            $sourceList=array_merge($sourceList,(array)$res->items);
+            $cursor=$res->cursor;
 
-        if($sourceList=$bsky->request('GET','app.bsky.graph.getList',$largs)){
-            foreach($sourceList->items as $listItem){
+        }
+        while ($cursor);
+
+        if($sourceList){
+            foreach($sourceList as $listItem){
                 //Add the user to the pack list
                 $args=[  'collection' => 'app.bsky.graph.listitem',
                 'repo' => $bsky->getAccountDid(),
@@ -327,7 +323,7 @@ if(isset($_POST['submit'])) {
         <input type="submit" name="submit" value="Submit">
     </form>
     <p>Create a new starter pack from the Profile tab of your account. Add seven random accounts so it can save. Perform the import. Remove the original seven random accounts.</p>
-    <p>*Note: Only the first 100 entries in the list will be included in the conversion!</p>
+    <p>*Note: A Starter Pack tops out at 150 members, so only 142 will be imported (150 minus you minus the 7 randoms)</p>
 <hr />
 <ul>
 <li><a href="./bskyListCombiner.php">Import members from one list into another, existing list.</a></li>

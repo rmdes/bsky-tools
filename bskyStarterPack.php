@@ -1,5 +1,5 @@
 <?php
-error_reporting(E_ALL);
+error_reporting(E_ERROR);
 ini_set('display_errors', '1');
 if(isset($_POST['submit'])) {
 
@@ -7,8 +7,6 @@ if(isset($_POST['submit'])) {
     $BSKY_HANDLETEST=$_POST['handle'];
     $BSKY_PWTEST=$_POST['apppassword'];
     $packURL=$_POST['packurl'];
-
-
 
     class BlueskyApi
     {
@@ -182,7 +180,7 @@ if(isset($_POST['submit'])) {
         ];
 
 
-        // SEND A MESSAGE
+        // Can I access the Starter Pack?
             if($data = $bsky->request('GET', 'app.bsky.graph.getStarterPack', $args)){
                 //get the parameters from the pack
                 $packListUri=$data->starterPack->list->uri;
@@ -202,9 +200,19 @@ if(isset($_POST['submit'])) {
                 if($data2 = $bsky->request('POST', 'com.atproto.repo.createRecord', $args)){
                     $newListURI=$data2->uri;
                     //read the old list for accounts to add to the list
-                    $args=['list'=>$packListUri,'limit'=>100];
-                    if($spList=$bsky->request('GET','app.bsky.graph.getList',$args)){
-                        foreach($spList->items as $listItem){
+                    $cursor='';
+                    $spList=[];
+                    do {
+                        $args=['list'=>$packListUri,'limit'=>100,'cursor'=>$cursor];
+                        $res=$bsky->request('GET','app.bsky.graph.getList',$args);
+                        $spList=array_merge($spList,(array)$res->items);
+                        $cursor=$res->cursor;
+
+                    }
+                    while ($cursor);
+
+                    if($spList){
+                        foreach($spList as $listItem){
                             //Add the user to the list
                             $args=[  'collection' => 'app.bsky.graph.listitem',
                             'repo' => $bsky->getAccountDid(),
@@ -296,7 +304,6 @@ if(isset($_POST['submit'])) {
         <p>Starter Pack URL to convert: <input type="text" name="packurl" placeholder="https://bsky.app/starter-pack/wandrme.paxex.aero/3l6stg6xfrc23" required></p>
         <input type="submit" name="submit" value="Submit">
     </form>
-    <p>*Note: Only the first 100 entries in the list will be included in the conversion!</p>
     <hr />
     <ul>
     <li><a href="./bskyListCombiner.php">Import members from one list into another, existing list.</a></li>
