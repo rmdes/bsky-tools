@@ -4,7 +4,7 @@ ini_set('display_errors', '1');
 if(isset($_POST['submit'])) {
 
 
-    $BSKY_HANDLETEST=$_POST['handle'];
+    $BSKY_HANDLETEST=str_replace("@","",$_POST['handle']);
     $BSKY_PWTEST=$_POST['apppassword'];
     $packURL=$_POST['packurl'];
 
@@ -207,7 +207,6 @@ if(isset($_POST['submit'])) {
                         $res=$bsky->request('GET','app.bsky.graph.getList',$args);
                         $spList=array_merge($spList,(array)$res->items);
                         $cursor=$res->cursor;
-
                     }
                     while ($cursor);
 
@@ -311,6 +310,7 @@ if(isset($_POST['submit'])) {
     <li><a href="./bskyStarterPack.php">Convert a BSky Starter Pack to a List.</a></li>
     <li><a href="./bskyFollowBoost.php">Follow a random chunk of users from someone else's list.</a></li>
 	<li><a href="./bskySPMerge.php">Merge Starter Packs</a></li>
+    <li><a href="./bskyList2ModList.php">Migrate Content List to Mod List</a></li>
 
     </ul>
 <hr />

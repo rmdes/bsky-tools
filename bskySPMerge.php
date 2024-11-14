@@ -4,7 +4,7 @@ ini_set('display_errors', '1');
 if(isset($_POST['submit'])) {
 
 
-    $BSKY_HANDLETEST=$_POST['handle'];
+    $BSKY_HANDLETEST=str_replace("@","",$_POST['handle']);
     $BSKY_PWTEST=$_POST['apppassword'];
     $packURL=$_POST['packurl'];
     $listURL=$_POST['packsrcurl'];

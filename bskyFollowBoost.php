@@ -4,9 +4,9 @@ ini_set('display_errors', '1');
 if(isset($_POST['submit'])) {
 
 
-    $BSKY_HANDLETEST=$_POST['handle'];
+    $BSKY_HANDLETEST=str_replace("@","",$_POST['handle']);
     $BSKY_PWTEST=$_POST['apppassword'];
-    $targetUser=$_POST['targetUser'];
+    $targetUser=str_replace("@","",$_POST['targetUser']);
     $numAccts=$_POST['numAccts'];
     $copyCap=.1; //Limit to only copying 10% of the follows from the account; adjust as desired 
 
