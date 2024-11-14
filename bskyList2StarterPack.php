@@ -324,15 +324,6 @@ if(isset($_POST['submit'])) {
     </form>
     <p>Create a new starter pack from the Profile tab of your account. Add seven random accounts so it can save. Perform the import. Remove the original seven random accounts.</p>
     <p>*Note: A Starter Pack tops out at 150 members, so only 142 will be imported (150 minus you minus the 7 randoms)</p>
-<hr />
-<ul>
-<li><a href="./bskyListCombiner.php">Import members from one list into another, existing list.</a></li>
-<li><a href="./bskyList2StarterPack.php">Convert a BSky List to a Starter Pack.</a></li>
-<li><a href="./bskyStarterPack.php">Convert a BSky Starter Pack to a List.</a></li>
-    <li><a href="./bskyFollowBoost.php">Follow a random chunk of users from someone else's list.</a></li>
-    <li><a href="./bskySPMerge.php">Merge Starter Packs</a></li>
-
-</ul>
-<hr />
-<p><a href="https://github.com/sbm12/bsky-Pack2List" target="_blank">Link to source code</a>. I'm not logging anything on this server, at least not on purpose, but you should still probably use an App Password then delete it when you're done.</p></body>
-</html>
+    <?php
+include "./footer.php";
+?>
