@@ -4,9 +4,10 @@ ini_set('display_errors', '1');
 if(isset($_POST['submit'])) {
 
 
-    $BSKY_HANDLETEST=str_replace("@","",$_POST['handle']);
+    $BSKY_HANDLETEST=str_replace(["@",'bsky.app'],["",'bsky.social'],$_POST['handle']);
     $BSKY_PWTEST=$_POST['apppassword'];
     $packURL=$_POST['packurl'];
+    $listType=$_POST['listtype'];
 
     class BlueskyApi
     {
@@ -172,13 +173,14 @@ if(isset($_POST['submit'])) {
     }
 
 
-    function bsky_StarterPack($bsky, $spDID) {
+    function bsky_StarterPack($bsky, $spDID,$listType) {
         //build the post
     
         $args = [
             'starterPack' => $spDID
         ];
 
+        ($listType=='mod')?$listType='app.bsky.graph.defs#modlist':$listType='app.bsky.graph.defs#curatelist';
 
         // Can I access the Starter Pack?
             if($data = $bsky->request('GET', 'app.bsky.graph.getStarterPack', $args)){
@@ -192,7 +194,7 @@ if(isset($_POST['submit'])) {
                         'record' => [
                             'createdAt' => date('c'),
                             '$type' => 'app.bsky.graph.list',
-                            'purpose' => 'app.bsky.graph.defs#curatelist',
+                            'purpose' => $listType,
                             'name'=>$packListName .'-Pack' ,
                             'description'=> "Imported from the Starter Pack at ". $_POST['packurl'] . ", powered by https://nws-bot.us/bskyStarterPack.php and @wandrme.paxex.aero.",
                         ],
@@ -256,11 +258,19 @@ if(isset($_POST['submit'])) {
                 return '';
             }
     }
+    function deParam($url){
+        if (strpos($url,'?')>-1){
+            //There's a ? in the url so kill that and everything after it
+            $url=substr($url,0,strpos($url,'?'));
+        }
+        return $url;
+    }
 
 //Run this crap
     $bluesky = new BlueskyApi($BSKY_HANDLETEST, $BSKY_PWTEST);
-
-    if($bluesky){
+    $packURL=deParam($packURL);
+    
+    if($bluesky->hasApiKey()){
         //handle short URLs for the pack
         $packURL = str_replace('bsky.app/starter-pack-short','go.bsky.app',$packURL);
         if (strpos($packURL,"go.bsky.app")>0  ){
@@ -276,17 +286,18 @@ if(isset($_POST['submit'])) {
         $packAT=bskySPs($bluesky,$userHandle,$packID);
         if ($packAT!=''){
             //Came back with an at: URI, so I can now fetch the Starter Pack and parse for the list details inside
-            $results=bsky_StarterPack($bluesky,$packAT);
+            $results=bsky_StarterPack($bluesky,$packAT,$listType);
         }
         else{
             echo "Could not find that Starter Pack. Please check the URL and try again.";
         }
 
         $bluesky=null;
-        echo "Import Complete";
+        ($listType="mod")?$msg='<p>Import Complete</p><p>Check your <a href="https://bsky.app/moderation/modlists" target="_blank">Mod Lists</a> for more details.':$msg='<p>Import Complete</p><p>Check your <a href="https://bsky.app/lists" target="_blank">User Lists</a> for more details.';
+        echo $msg;
     }
     else{
-        echo "Error connecting to your account. Please check the username and app password and try again.";
+        echo "<p>Error connecting to your account. Please check the username and app password and try again.</p>";
     }
 }
 ?>
@@ -301,6 +312,7 @@ if(isset($_POST['submit'])) {
         <p>Your BSky Handle: <input type="text" name="handle" placeholder="user.bsky.social" required></p>
         <p>Your BSky <a href="https://bsky.app/settings/app-passwords" target="_blank">App Password</a>: <input type="password" name="apppassword" placeholder="abcd-1234-fghi-5678" required></p>
         <p>Starter Pack URL to convert: <input type="text" name="packurl" placeholder="https://bsky.app/starter-pack/wandrme.paxex.aero/3l6stg6xfrc23" required></p>
+        <p>What type of list? <input type="radio" name="listtype" value="content" checked id="content" required><label for="content">Content</label> | <input type="radio" id="mod" name="listtype" value="mod" required><label for="mod">Moderation</label></p>
         <input type="submit" name="submit" value="Submit">
     </form>
     <?php
