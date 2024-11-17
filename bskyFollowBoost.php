@@ -1,14 +1,15 @@
 <?php
-error_reporting(E_ALL);
+error_reporting(E_ERROR);
 ini_set('display_errors', '1');
-if(isset($_POST['submit'])) {
+//if(isset($_POST['submit'])) {
 
 
-    $BSKY_HANDLETEST=str_replace("@","",$_POST['handle']);
+    $BSKY_HANDLETEST=str_replace(["@",'bsky.app'],["",'bsky.social'],$_POST['handle']);;
     $BSKY_PWTEST=$_POST['apppassword'];
     $targetUser=str_replace("@","",$_POST['targetUser']);
     $numAccts=$_POST['numAccts'];
     $copyCap=.1; //Limit to only copying 10% of the follows from the account; adjust as desired 
+
 
 
     class BlueskyApi
@@ -157,7 +158,7 @@ if(isset($_POST['submit'])) {
     $bluesky = new BlueskyApi($BSKY_HANDLETEST, $BSKY_PWTEST);
 
 
-    if($bluesky){
+    if($bluesky->hasApiKey()){
 
         //get did for the  user from which to copy
        
@@ -172,22 +173,16 @@ if(isset($_POST['submit'])) {
             $tDID=$tUsr->did;
             $tFCount=$tUsr->followsCount;
             //get follows of that user
+            $cursor='';
             $arrFoll=[];
-            $args = [
-                'actor' => $tDID,
-                'limit'=>100
-            ];
-            $follows=json_decode(json_encode($bluesky->request('GET','app.bsky.graph.getFollows',$args)),true);
-            $arrFoll=array_merge($follows['follows'],$arrFoll);
-            if($follows['cursor']){
-                $args = [
-                    'actor' => $tDID,
-                    'limit'=>100,
-                    'cursor'=>$follows['cursor']
-                ];
-                $follows=json_decode(json_encode($bluesky->request('GET','app.bsky.graph.getFollows',$args)),true);
-                $arrFoll=array_merge($follows['follows'],$arrFoll);    
+            do {
+                $args=['actor'=>$tDID,'limit'=>100,'cursor'=>$cursor];
+                $res=$bluesky->request('GET','app.bsky.graph.getFollows',$args);
+                $arrFoll=array_merge($arrFoll,(array)$res->follows);
+                $res->cursor?$cursor=$res->cursor:$cursor='';
             }
+            while ($cursor);
+
         
             //Now Loop to NN accounts (or % cap) and add those as follows 
             $numTries=min(round(count($arrFoll)/$copyCap),$numAccts);
@@ -198,7 +193,7 @@ if(isset($_POST['submit'])) {
                     'collection' => 'app.bsky.graph.follow',
                     'repo' => $bluesky->getAccountDid(),
                     'record' => [
-                        'subject'=>$arrFoll[$acct]['did'],
+                        'subject'=>$arrFoll[$acct]->did,
                         'createdAt' => date('c'),
                         '$type' => 'app.bsky.graph.follow',
                     ],
@@ -214,7 +209,7 @@ if(isset($_POST['submit'])) {
     else{
         echo "Error connecting to your account. Please check the username and app password and try again.";
     }
-}
+//}
 ?>
 <!DOCTYPE html>
 <html>
