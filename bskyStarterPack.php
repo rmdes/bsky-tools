@@ -8,6 +8,9 @@ if(isset($_POST['submit'])) {
     $BSKY_PWTEST=$_POST['apppassword'];
     $packURL=$_POST['packurl'];
     $listType=$_POST['listtype'];
+    $listURL=$_POST['listurl'];
+    
+
 
     class BlueskyApi
     {
@@ -173,7 +176,7 @@ if(isset($_POST['submit'])) {
     }
 
 
-    function bsky_StarterPack($bsky, $spDID,$listType) {
+    function bsky_StarterPack($bsky, $spDID,$listType,$listURI) {
         //build the post
     
         $args = [
@@ -188,6 +191,7 @@ if(isset($_POST['submit'])) {
                 $packListUri=$data->starterPack->list->uri;
                 $packListName=$data->starterPack->list->name;
 
+                if ($listURI==''){
                 //create a new list for the user with the pack details
                 $args=[  'collection' => 'app.bsky.graph.list',
                         'repo' => $bsky->getAccountDid(),
@@ -198,38 +202,41 @@ if(isset($_POST['submit'])) {
                             'name'=>$packListName .'-Pack' ,
                             'description'=> "Imported from the Starter Pack at ". $_POST['packurl'] . ", powered by https://nws-bot.us/bskyStarterPack.php and @wandrme.paxex.aero.",
                         ],
-            ];
-                if($data2 = $bsky->request('POST', 'com.atproto.repo.createRecord', $args)){
-                    $newListURI=$data2->uri;
-                    //read the old list for accounts to add to the list
-                    $cursor='';
-                    $spList=[];
-                    do {
-                        $args=['list'=>$packListUri,'limit'=>100,'cursor'=>$cursor];
-                        $res=$bsky->request('GET','app.bsky.graph.getList',$args);
-                        $spList=array_merge($spList,(array)$res->items);
-                        $cursor=$res->cursor;
-                    }
-                    while ($cursor);
-
-                    if($spList){
-                        foreach($spList as $listItem){
-                            //Add the user to the list
-                            $args=[  'collection' => 'app.bsky.graph.listitem',
-                            'repo' => $bsky->getAccountDid(),
-                            'record' => [
-                                'createdAt' => date('c'),
-                                '$type' => 'app.bsky.graph.listitem',
-                                'subject'=> $listItem->subject->did,
-                                'list'=> $newListURI,
-                                ],
-                            ];
-                            $bsky->request('POST', 'com.atproto.repo.createRecord', $args);
-                        }
-                    }
-
-                    
+                    ];
+                $data2 = $bsky->request('POST', 'com.atproto.repo.createRecord', $args);
+                $newListURI=$data2->uri;
                 }
+                else{
+                    $newListURI=$listURI;
+                }
+                
+                //read the old list for accounts to add to the list
+                $cursor='';
+                $spList=[];
+                do {
+                    $args=['list'=>$packListUri,'limit'=>100,'cursor'=>$cursor];
+                    $res=$bsky->request('GET','app.bsky.graph.getList',$args);
+                    $spList=array_merge($spList,(array)$res->items);
+                    $cursor=$res->cursor;
+                }
+                while ($cursor);
+
+                if($spList){
+                    foreach($spList as $listItem){
+                        //Add the user to the list
+                        $args=[  'collection' => 'app.bsky.graph.listitem',
+                        'repo' => $bsky->getAccountDid(),
+                        'record' => [
+                            'createdAt' => date('c'),
+                            '$type' => 'app.bsky.graph.listitem',
+                            'subject'=> $listItem->subject->did,
+                            'list'=> $newListURI,
+                            ],
+                        ];
+                        $bsky->request('POST', 'com.atproto.repo.createRecord', $args);
+                    }
+                }
+
             } else {
                 echo "Couldn't find that starter pack. Please check the URL and try again.";
             }
@@ -266,6 +273,32 @@ if(isset($_POST['submit'])) {
         return $url;
     }
 
+    function bskyListATs($bsky, $userHandle,$listID) {
+        //get the pack at: URI from the base URL
+    
+        $cursor='';
+        $arrLists=[];
+        do {
+            $args=['actor'=>$userHandle,'limit'=>100,'cursor'=>$cursor];
+            $res=$bsky->request('GET','app.bsky.graph.getLists',$args);
+            $arrLists=array_merge($arrLists,(array)$res->lists);
+            $cursor=$res->cursor;
+        }
+        while ($cursor);
+
+        foreach ($arrLists as $item){
+            $listURI=$item->uri;
+            $arrlistCheck=explode('/',$listURI);
+            $listCode=$arrlistCheck[count($arrlistCheck)-1];
+            if ($listCode==$listID){
+                return  $listURI;
+            }
+        }
+
+        //last resort
+        return '';
+    }
+
 //Run this crap
     $bluesky = new BlueskyApi($BSKY_HANDLETEST, $BSKY_PWTEST);
     $packURL=deParam($packURL);
@@ -281,19 +314,28 @@ if(isset($_POST['submit'])) {
         $userHandle=$arrPack[count($arrPack)-2];
         $packID=$arrPack[count($arrPack)-1];
 
-
+        //If there's a list URL see if I can get a URI for it.
+        if (strlen($listURL)>2){
+            $arrList=explode('/',$listURL);
+            $listUserHandle=$arrList[count($arrList)-3];
+            $listID=$arrList[count($arrList)-1];
+            $listAT=bskyListATs($bluesky,$listUserHandle,$listID);
+        }
+        else {
+            $listAT='';
+        }
 
         $packAT=bskySPs($bluesky,$userHandle,$packID);
         if ($packAT!=''){
             //Came back with an at: URI, so I can now fetch the Starter Pack and parse for the list details inside
-            $results=bsky_StarterPack($bluesky,$packAT,$listType);
+            $results=bsky_StarterPack($bluesky,$packAT,$listType,$listAT);
         }
         else{
             echo "Could not find that Starter Pack. Please check the URL and try again.";
         }
 
         $bluesky=null;
-        ($listType="mod")?$msg='<p>Import Complete</p><p>Check your <a href="https://bsky.app/moderation/modlists" target="_blank">Mod Lists</a> for more details.':$msg='<p>Import Complete</p><p>Check your <a href="https://bsky.app/lists" target="_blank">User Lists</a> for more details.';
+        ($listType=="mod")?$msg='<p>Import Complete</p><p>Check your <a href="https://bsky.app/moderation/modlists" target="_blank">Mod Lists</a> for more details.':$msg='<p>Import Complete</p><p>Check your <a href="https://bsky.app/lists" target="_blank">User Lists</a> for more details.';
         echo $msg;
     }
     else{
@@ -313,6 +355,7 @@ if(isset($_POST['submit'])) {
         <p>Your BSky <a href="https://bsky.app/settings/app-passwords" target="_blank">App Password</a>: <input type="password" name="apppassword" placeholder="abcd-1234-fghi-5678" required></p>
         <p>Starter Pack URL to convert: <input type="text" name="packurl" placeholder="https://bsky.app/starter-pack/wandrme.paxex.aero/3l6stg6xfrc23" required></p>
         <p>What type of list? <input type="radio" name="listtype" value="content" checked id="content" required><label for="content">Content</label> | <input type="radio" id="mod" name="listtype" value="mod" required><label for="mod">Moderation</label></p>
+        <p>Merge into existing list? <input type="text" name="listurl" placeholder="https://bsky.app/starter-pack/wandrme.paxex.aero/3l6stg6xfrc23" > (Leave blank by default; put in a list URL if you own one that the SP should merge into.)</p>
         <input type="submit" name="submit" value="Submit">
     </form>
     <?php
