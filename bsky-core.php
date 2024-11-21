@@ -166,7 +166,7 @@
     }
     function getPDS($uName){
     try{
-        $url="https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=" . $uName;
+        $url="https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=" . strtolower($uName);
         $file = file_get_contents($url, false);
         $json = json_decode($file, true);
         $uDID=$json['did'];

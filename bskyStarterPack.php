@@ -4,12 +4,15 @@ ini_set('display_errors', '1');
 if(isset($_POST['submit'])) {
 
 
-    $BSKY_HANDLETEST=str_replace(["@",'bsky.app'],["",'bsky.social'],$_POST['handle']);
+    $BSKY_HANDLETEST=strtolower(str_replace(["@",'bsky.app'],["",'bsky.social'],$_POST['handle']));
     $BSKY_PWTEST=$_POST['apppassword'];
     $packURL=$_POST['packurl'];
     $listType=$_POST['listtype'];
     $listURL=$_POST['listurl'];
     
+
+
+
     function bsky_StarterPack($bsky, $spDID,$listType,$listURI) {
         //build the post
     

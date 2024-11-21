@@ -103,8 +103,7 @@ if(isset($_POST['submit'])) {
 
 
 
-    $packURL=deParam($packURL);
-    $listURL=deParam($listURL);
+
     ?>
 
     <?php
@@ -112,6 +111,9 @@ if(isset($_POST['submit'])) {
     ?>
     
     <?php
+
+    $packURL=deParam($packURL);
+    $listURL=deParam($listURL);
     //Run this crap
     //init the connection
     $pdsURL=getPDS($BSKY_HANDLETEST);

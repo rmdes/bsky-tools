@@ -5,7 +5,7 @@
     <li><a href="./bskyStarterPack.php">Convert a BSky Starter Pack to a List.</a></li>
     <li><a href="./bskyFollowBoost.php">Follow a random chunk of users from someone else's list.</a></li>
 	<li><a href="./bskySPMerge.php">Merge Starter Packs</a></li>
-    <li><a href="./bskyList2ModList.php">Migrate Content List to Mod List</a></li>
+    <li><a href="./bskyList2List.php">Migrate Content List to Mod List or vice versa</a></li>
     <li><a href="./bskyListMyFollows.php">Convert your Follows collection to a Content List</a></li>
     <li><a href="./bskyJoinDate.php">User Join Date Query</a></li>
     </ul>
