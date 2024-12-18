@@ -10,13 +10,12 @@ if (isset($_POST['submit'])) {
 
     $pdsURL = getPDS($BSKY_HANDLETEST);
     if ($pdsURL == '') {
-        $statusMessage = '<div style="color:red;">Invalid Username. Ensure the full name includes the domain suffix.</div>';
+        echo '<div style="color:red;">Invalid Username. Ensure the full name includes the domain suffix.</div>';
     } else {
         $bluesky = new BlueskyApi($BSKY_HANDLETEST, $BSKY_PWTEST, $pdsURL);
         if ($bluesky->hasApiKey()) {
-            try {
-                $args = ['actor' => $bluesky->getAccountDid()];
-                $tUsr = $bluesky->request('GET', 'app.bsky.actor.getProfile', $args);
+            $args = ['actor' => $bluesky->getAccountDid()];
+            if ($tUsr = $bluesky->request('GET', 'app.bsky.actor.getProfile', $args)) {
                 $tDID = $tUsr->did;
                 $cursor = '';
                 $arrFoll = [];
@@ -27,7 +26,6 @@ if (isset($_POST['submit'])) {
                     $cursor = $res->cursor;
                 } while ($cursor);
 
-                // Create list
                 $args = [
                     'collection' => 'app.bsky.graph.list',
                     'repo' => $bluesky->getAccountDid(),
@@ -36,31 +34,30 @@ if (isset($_POST['submit'])) {
                         '$type' => 'app.bsky.graph.list',
                         'purpose' => 'app.bsky.graph.defs#curatelist',
                         'name' => 'My Follows ' . date('Y-m-d'),
-                        'description' => "List created from my follows using Bluesky Tools",
+                        'description' => "List created from my follows, powered by Bluesky Tools",
                     ],
                 ];
-                $data2 = $bluesky->request('POST', 'com.atproto.repo.createRecord', $args);
-                $newListURI = $data2->uri;
-
-                foreach ($arrFoll as $acct) {
-                    $args = [
-                        'collection' => 'app.bsky.graph.listitem',
-                        'repo' => $bluesky->getAccountDid(),
-                        'record' => [
-                            'subject' => $acct->did,
-                            'createdAt' => date('c'),
-                            '$type' => 'app.bsky.graph.listitem',
-                            'list' => $newListURI,
-                        ],
-                    ];
-                    $bluesky->request('POST', 'com.atproto.repo.createRecord', $args);
+                if ($data2 = $bluesky->request('POST', 'com.atproto.repo.createRecord', $args)) {
+                    $newListURI = $data2->uri;
+                    foreach ($arrFoll as $acct) {
+                        $args = [
+                            'collection' => 'app.bsky.graph.listitem',
+                            'repo' => $bluesky->getAccountDid(),
+                            'record' => [
+                                'subject' => $acct->did,
+                                'createdAt' => date('c'),
+                                '$type' => 'app.bsky.graph.listitem',
+                                'list' => $newListURI,
+                            ],
+                        ];
+                        $bluesky->request('POST', 'com.atproto.repo.createRecord', $args);
+                    }
                 }
-                $statusMessage = '<div style="color:green;">List successfully created! Please refresh the page to submit another request.</div>';
-            } catch (Exception $e) {
-                $statusMessage = '<div style="color:red;">Error: ' . $e->getMessage() . '</div>';
+                echo '<div style="color:green;">Import Complete!</div>';
             }
+            $bluesky = null;
         } else {
-            $statusMessage = '<div style="color:red;">Error connecting to your account. Please check credentials.</div>';
+            echo '<div style="color:red;">Error connecting to your account. Please check credentials.</div>';
         }
     }
 }
@@ -69,24 +66,32 @@ if (isset($_POST['submit'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bluesky Tools - My Follows</title>
+    <title>Create a list from all the people you follow</title>
     <script>
         function disableButton() {
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true;
-            btn.value = 'Processing...';
+            document.getElementById('submit-btn').disabled = true;
         }
     </script>
 </head>
 <body>
-    <h1>Bluesky Tools - Create List from Follows</h1>
+    <h1>Create a list from all the people you follow</h1>
+    <nav>
+        <strong>Other Tools:</strong>
+        <a href="bskyFollowBoost.php">Follow Boost</a> |
+        <a href="bskyFollowMyList.php">Follow My List</a> |
+        <a href="bskyJoinDate.php">Join Date Checker</a> |
+        <a href="bskyList2List.php">List to List</a> |
+        <a href="bskyList2ModList.php">List to Mod List</a> |
+        <a href="bskyList2StarterPack.php">List to Starter Pack</a> |
+        <a href="bskyListCombiner.php">List Combiner</a> |
+        <a href="bskyListMyFollows.php">List My Follows</a> |
+        <a href="bskySPMerge.php">SP Merge</a> |
+        <a href="bskyStarterPack.php">Starter Pack</a>
+    </nav>
     <form action="" method="POST" onsubmit="disableButton()">
         <p>Your BSky Handle: <input type="text" name="handle" placeholder="user.bsky.social" required></p>
         <p>Your BSky <a href="https://bsky.app/settings/app-passwords" target="_blank">App Password</a>: <input type="password" name="apppassword" placeholder="abcd-1234-fghi-5678" required></p>
         <input type="submit" id="submit-btn" name="submit" value="Submit">
     </form>
-    <div style="margin-top: 10px; font-weight: bold;">
-        <?php echo $statusMessage; ?>
-    </div>
 </body>
 </html>
